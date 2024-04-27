@@ -4,8 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import numpy as np
 from multiprocessing import cpu_count
-# Define the path for the directory where the CSV files are located
-
+# path donde esta la data
 INPUT_DIR = '../ProyectoHiloss/so_data'
 
 
@@ -16,12 +15,12 @@ def list_files(directory):
     for file in files:
         print(file)
 
-# Call the list_files function before running the main function
+# ver que si estenleyendose los files
 list_files(INPUT_DIR)
 
 
 def calculate_stats(data):
-    # Select only numeric data for statistics calculations
+    # datos estadisticos
     numeric_data = data.select_dtypes(include=[np.number])
     return {
         'count': numeric_data.count(),
