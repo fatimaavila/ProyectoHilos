@@ -65,8 +65,6 @@
 
 # if __name__ == "__main__":
 #     main()
-
-
 import os
 import time
 import numpy as np
@@ -90,7 +88,16 @@ def calcular_estadisticas(datos):
     return media, desviacion_estandar, conteo, fecha_minima, fecha_maxima
 
 def convertir_a_fecha(fecha_str):
-    return datetime.strptime(fecha_str, '%Y/%m/%d')
+    try:
+        # Intenta convertir la fecha con el formato 'YYYY/MM/DD'
+        return datetime.strptime(fecha_str, '%Y/%m/%d')
+    except ValueError:
+        try:
+            # Intenta convertir la fecha con el formato 'DD/MM/YYYY'
+            return datetime.strptime(fecha_str, '%d/%m/%Y')
+        except ValueError:
+            # Si ninguno de los formatos coincide, levanta una excepción
+            raise ValueError("Formato de fecha no válido")
 
 def procesar_csv(archivo_csv):
     # Leer datos del archivo CSV
@@ -112,14 +119,18 @@ def procesar_csv(archivo_csv):
 def main():
     # Configuración de archivos y parámetros
     archivo_csv = "datos.csv"  # Nombre del archivo CSV
-    modelos_paralelismo = [...]  # Lista de modelos de paralelismo a probar
+    modelos_paralelismo = ['modelo1', 'modelo2', 'modelo3']  # Lista de modelos de paralelismo a probar
     num_iteraciones = 10
+
+    print("Iniciando procesamiento...")
 
     # Procesamiento
     resultados = {}
     for modelo in modelos_paralelismo:
+        print(f"Modelo de paralelismo: {modelo}")
         resultados[modelo] = []
-        for _ in range(num_iteraciones):
+        for i in range(num_iteraciones):
+            print(f"Iteración {i+1}/{num_iteraciones}")
             tiempo_inicial = time.time()
 
             # Ejecutar en paralelo según el modelo
@@ -127,8 +138,12 @@ def main():
                 archivos_procesados = list(executor.map(procesar_csv, [archivo_csv] * 1000))  # Cambiar 1000 por el número de archivos
 
             tiempo_final = time.time()
-            tiempo_total = tiempo_final - tiempo_inicial  # Corrección aquí
+            tiempo_total = tiempo_final - tiempo_inicial
             resultados[modelo].append(tiempo_total)
+
+            print(f"Tiempo total de iteración: {tiempo_total} segundos")
+
+    print("Procesamiento finalizado.")
 
     # Guardar resultados de tiempo en un archivo
     with open("resultados_tiempo.csv", 'w', newline='') as f:
@@ -137,7 +152,9 @@ def main():
         for modelo, tiempos in resultados.items():
             tiempo_promedio = sum(tiempos) / len(tiempos)
             writer.writerow([modelo, tiempo_promedio])
+            print(f"Modelo: {modelo}, Tiempo Promedio: {tiempo_promedio} segundos")
+
+    print("Resultados guardados en 'resultados_tiempo.csv'.")
 
 if __name__ == "__main__":
     main()
-
