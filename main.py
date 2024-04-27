@@ -6,7 +6,7 @@ import numpy as np
 from multiprocessing import cpu_count
 # Define the path for the directory where the CSV files are located
 
-INPUT_DIR = '../Proy3/so_data'
+INPUT_DIR = '../ProyectoHiloss/so_data'
 
 
 
