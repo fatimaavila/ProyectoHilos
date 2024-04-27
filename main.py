@@ -69,28 +69,22 @@ def main():
         '4core-8threads': 8  # You need to ensure your system has 4 cores available for this
     }
     
-    time_results = {}
-
-    # Get the actual number of cores for demonstration purposes
-    available_cores = cpu_count()
-    print(f"Available cores: {available_cores}")
+    all_results = {}
 
     for model_name, max_workers in threading_models.items():
         print(f"Running model: {model_name}")
-        time_results[model_name] = []
+        time_results = []
         for _ in range(10):  # Perform 10 iterations
-            if model_name == 'sequential':
-                time_taken = run_sequential(INPUT_DIR)
-            else:
-                time_taken = run_parallel_files(INPUT_DIR, max_workers)
-            time_results[model_name].append(time_taken)
-        
-        # Output results for this model
-        avg_time = np.mean(time_results[model_name])
-        print(f"{model_name} took an average of {avg_time:.2f} seconds per run over 10 iterations")
+            start_time = time.time()
+            results = run_parallel_files(INPUT_DIR, max_workers)
+            end_time = time.time()
+            time_taken = end_time - start_time
+            time_results.append(time_taken)
+        all_results[model_name] = time_results
 
-    # Save the timing results to a CSV file
-    pd.DataFrame.from_dict(time_results, orient='index').to_csv('../Proy3/so_data/time_results.csv')
+    # Save all timing results to a single CSV file
+    df = pd.DataFrame.from_dict(all_results)
+    df.to_csv('Proy3/so_data/time_results.csv', index=False)
 
 if __name__ == "__main__":
     main()
