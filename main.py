@@ -1,160 +1,96 @@
-# import os
-# import time
-# import numpy as np
-# import csv
-# from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-# from datetime import datetime
-
-# def calcular_estadisticas(datos):
-#     media = np.mean(datos)
-#     desviacion_estandar = np.std(datos)
-#     conteo = len(datos)
-#     valor_minimo = np.min(datos)
-#     valor_maximo = np.max(datos)
-#     return media, desviacion_estandar, conteo, valor_minimo, valor_maximo
-
-# def procesar_csv(archivo_csv):
-#     # Leer datos del archivo CSV
-#     with open(archivo_csv, 'r') as f:
-#         reader = csv.reader(f)
-#         next(reader)  # Saltar la primera fila (encabezado)
-#         datos = [float(row[0]) for row in reader]
-
-#     # Calcular estadísticas
-#     estadisticas = calcular_estadisticas(datos)
-
-#     # Escribir resultados en un archivo
-#     nombre_archivo_salida = f"resultado_{os.path.basename(archivo_csv)}"
-#     with open(nombre_archivo_salida, 'w') as f:
-#         f.write("Media, Desviación Estándar, Conteo, Mínimo, Máximo\n")
-#         f.write(",".join(map(str, estadisticas)))
-
-#     return nombre_archivo_salida
-
-# def convertir_a_fecha(fecha_str):
-#     return datetime.strptime(fecha_str, '%Y-%m-%d')
-# def main():
-#     # Configuración de archivos y parámetros
-    
-#     archivo_csv = "datos.csv"  # Nombre del archivo CSV
-#     modelos_paralelismo = [...]  # Lista de modelos de paralelismo a probar
-#     num_iteraciones = 10
-
-#     # Procesamiento
-#     resultados = {}
-#     for modelo in modelos_paralelismo:
-#         resultados[modelo] = []
-#         for _ in range(num_iteraciones):
-#             tiempo_inicial = time.time()
-
-#             # Ejecutar en paralelo según el modelo
-#             with ThreadPoolExecutor() as executor:  # o ProcessPoolExecutor para procesamiento basado en procesos
-#                 archivos_procesados = list(executor.map(procesar_csv, [archivo_csv] * 1000))  # Cambiar 1000 por el número de archivos
-
-#             tiempo_final = time.time()
-#             tiempo_total = tiempo_final - tiempo_inicial
-#             resultados[modelo].append(tiempo_total)
-
-#     # Guardar resultados de tiempo en un archivo
-#     with open("resultados_tiempo.csv", 'w', newline='') as f:
-#         writer = csv.writer(f)
-#         writer.writerow(["Modelo", "Tiempo Promedio (segundos)"])
-#         for modelo, tiempos in resultados.items():
-#             tiempo_promedio = sum(tiempos) / len(tiempos)
-#             writer.writerow([modelo, tiempo_promedio])
-
-# if __name__ == "__main__":
-#     main()
 import os
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 import numpy as np
-import csv
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from multiprocessing import cpu_count
+# Define the path for the directory where the CSV files are located
 
-def calcular_estadisticas(datos):
-    # Convertir fechas a timestamps (números)
-    timestamps = [date.timestamp() for date in datos]
-    media = np.mean(timestamps)
-    desviacion_estandar = np.std(timestamps)
-    conteo = len(datos)
-    valor_minimo = np.min(timestamps)
-    valor_maximo = np.max(timestamps)
-    
-    # Convertir de nuevo a objetos datetime para el resultado
-    fecha_minima = datetime.fromtimestamp(valor_minimo)
-    fecha_maxima = datetime.fromtimestamp(valor_maximo)
-    
-    return media, desviacion_estandar, conteo, fecha_minima, fecha_maxima
+INPUT_DIR = '../Proy3/so_data'
 
-def convertir_a_fecha(fecha_str):
-    try:
-        # Intenta convertir la fecha con el formato 'YYYY/MM/DD'
-        return datetime.strptime(fecha_str, '%Y/%m/%d')
-    except ValueError:
-        try:
-            # Intenta convertir la fecha con el formato 'DD/MM/YYYY'
-            return datetime.strptime(fecha_str, '%d/%m/%Y')
-        except ValueError:
-            # Si ninguno de los formatos coincide, levanta una excepción
-            raise ValueError("Formato de fecha no válido")
 
-def procesar_csv(archivo_csv):
-    # Leer datos del archivo CSV
-    with open(archivo_csv, 'r') as f:
-        reader = csv.DictReader(f)
-        datos = [convertir_a_fecha(row['dates']) for row in reader]
 
-    # Calcular estadísticas
-    estadisticas = calcular_estadisticas(datos)
+def list_files(directory):
+    files = os.listdir(directory)
+    print("Files in directory:")
+    for file in files:
+        print(file)
 
-    # Escribir resultados en un archivo
-    nombre_archivo_salida = f"resultado_{os.path.basename(archivo_csv)}"
-    with open(nombre_archivo_salida, 'w') as f:
-        f.write("Media, Desviación Estándar, Conteo, Mínimo, Máximo\n")
-        f.write(",".join(map(str, estadisticas)))
+# Call the list_files function before running the main function
+list_files(INPUT_DIR)
 
-    return nombre_archivo_salida
+
+def calculate_stats(data):
+    # Select only numeric data for statistics calculations
+    numeric_data = data.select_dtypes(include=[np.number])
+    return {
+        'count': numeric_data.count(),
+        'mean': numeric_data.mean(),
+        'std': numeric_data.std(),
+        'min': numeric_data.min(),
+        'max': numeric_data.max()
+    }
+
+def process_file(file_path):
+    # Process a single file and save stats
+    data = pd.read_csv(file_path)
+    stats = calculate_stats(data)
+    output_filename = f"{os.path.splitext(file_path)[0]}_out.csv"
+    pd.DataFrame(stats).to_csv(output_filename, index=False)
+    return output_filename
+
+def run_sequential(input_dir):
+    # Run all files sequentially
+    start_time = time.time()
+    for filename in os.listdir(input_dir):
+        if filename.endswith('.csv') and not filename.endswith('_out.csv'):
+            process_file(os.path.join(input_dir, filename))
+    return time.time() - start_time
+
+def run_parallel_files(input_dir, max_workers):
+    # Run file processing in parallel
+    start_time = time.time()
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_file, os.path.join(input_dir, filename))
+                   for filename in os.listdir(input_dir)
+                   if filename.endswith('.csv') and not filename.endswith('_out.csv')]
+        for future in as_completed(futures):
+            future.result()  # Wait for each file to be processed
+    return time.time() - start_time
 
 def main():
-    # Configuración de archivos y parámetros
-    archivo_csv = "datos.csv"  # Nombre del archivo CSV
-    modelos_paralelismo = ['modelo1', 'modelo2', 'modelo3']  # Lista de modelos de paralelismo a probar
-    num_iteraciones = 10
+    # Adjust max_workers based on the threading model and CPU core/thread restrictions
+    threading_models = {
+        '1core-1thread': 1,
+        '1core-4threads': 4,
+        '2core-2threads': 2,
+        '2core-4threads': 4,
+        '2core-8threads': 8,
+        '4core-8threads': 8  # You need to ensure your system has 4 cores available for this
+    }
+    
+    time_results = {}
 
-    print("Iniciando procesamiento...")
+    # Get the actual number of cores for demonstration purposes
+    available_cores = cpu_count()
+    print(f"Available cores: {available_cores}")
 
-    # Procesamiento
-    resultados = {}
-    for modelo in modelos_paralelismo:
-        print(f"Modelo de paralelismo: {modelo}")
-        resultados[modelo] = []
-        for i in range(num_iteraciones):
-            print(f"Iteración {i+1}/{num_iteraciones}")
-            tiempo_inicial = time.time()
+    for model_name, max_workers in threading_models.items():
+        print(f"Running model: {model_name}")
+        time_results[model_name] = []
+        for _ in range(10):  # Perform 10 iterations
+            if model_name == 'sequential':
+                time_taken = run_sequential(INPUT_DIR)
+            else:
+                time_taken = run_parallel_files(INPUT_DIR, max_workers)
+            time_results[model_name].append(time_taken)
+        
+        # Output results for this model
+        avg_time = np.mean(time_results[model_name])
+        print(f"{model_name} took an average of {avg_time:.2f} seconds per run over 10 iterations")
 
-            # Ejecutar en paralelo según el modelo
-            with ThreadPoolExecutor() as executor:
-                archivos_procesados = list(executor.map(procesar_csv, [archivo_csv] * 1000))  # Cambiar 1000 por el número de archivos
-
-            tiempo_final = time.time()
-            tiempo_total = tiempo_final - tiempo_inicial
-            resultados[modelo].append(tiempo_total)
-
-            print(f"Tiempo total de iteración: {tiempo_total} segundos")
-
-    print("Procesamiento finalizado.")
-
-    # Guardar resultados de tiempo en un archivo
-    with open("resultados_tiempo.csv", 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(["Modelo", "Tiempo Promedio (segundos)"])
-        for modelo, tiempos in resultados.items():
-            tiempo_promedio = sum(tiempos) / len(tiempos)
-            writer.writerow([modelo, tiempo_promedio])
-            print(f"Modelo: {modelo}, Tiempo Promedio: {tiempo_promedio} segundos")
-
-    print("Resultados guardados en 'resultados_tiempo.csv'.")
+    # Save the timing results to a CSV file
+    pd.DataFrame.from_dict(time_results, orient='index').to_csv('../Proy3/so_data/time_results.csv')
 
 if __name__ == "__main__":
     main()
