@@ -83,7 +83,7 @@ def main():
 
     # Save all timing results to a single CSV file
     df = pd.DataFrame.from_dict(all_results)
-    df.to_csv('Proy3/so_data/time_results.csv', index=False)
+    df.to_csv('c:/Users/Javier C/OneDrive - Universidad Francisco Marroquin/Clases/Sistemas operativos/ProyectoHiloss/time_results.csv', index=False)
 
 if __name__ == "__main__":
     main()
