@@ -89,7 +89,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=int, help='Modo de ejecución (1 o 2)')
     parser.add_argument('threads', type=int, help='Número de hilos para usar')
-    cpu_limit = os.getenv('CPU_LIMIT')
+    cpu_limit = os.getenv('CPU_LIMIT', os.cpu_count())
 
     args = parser.parse_args()
     if args.mode == 1:
