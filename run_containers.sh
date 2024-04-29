@@ -1,27 +1,32 @@
 #!/bin/bash
-declare -a configs=(
-    "1 1 1"   # 1 core, 1 hilo
-    "1 4 1"   # 1 core, 4 hilos
-    "2 2 2"   # 2 cores, 2 hilos
-    "2 4 2"   # 2 cores, 4 hilos
-    "2 8 2"   # 2 cores, 8 hilos
-    "4 8 4"   # 4 cores, 8 hilos
-)
 
-# Bucle para iterar sobre cada configuración
-for config in "${configs[@]}"
-do
-    IFS=' ' read -r -a array <<< "$config"
-    cores="${array[2]}"
-    threads="${array[1]}"
-    mode=1  # Ejecutar primero en modo 1
-
+run_program() {
+    mode=$1
+    cores=$2
+    threads=$3
     echo "Ejecutando contenedor en modo $mode con $cores núcleos y $threads hilos..."
-    docker run -m 1g --cpus $cores -e CPU_LIMIT=$cores --rm --name proyecto-hilos proyecto-hilos $mode $threads
+    execution_output=$(docker run -m 1g --cpus $cores -e CPU_LIMIT=$cores --rm --name proyecto-hilos proyecto-hilos $mode $threads | grep "Tiempo total de ejecución")
+    execution_time=$(echo $execution_output | cut -d ' ' -f 5)
+    echo "Tiempo de ejecución: $execution_time segundos"
+    echo "$mode, $cores, $threads, $execution_time" >> execution_times.csv
+}
 
-    mode=2  # Ejecutar luego en modo 2
+echo "Modo, Cores, Hilos, Tiempo de Ejecución (segundos)" > execution_times.csv
 
-    echo "Ejecutando contenedor en modo $mode con $cores núcleos y $threads hilos..."
-    docker run -m 1g --cpus $cores -e CPU_LIMIT=$cores --rm --name proyecto-hilos proyecto-hilos $mode $threads
-
+for mode in 1 2; do
+    for cores in 1 2 4; do
+        if [ $cores -eq 1 ]; then
+            for threads in 1 4; do
+                run_program $mode $cores $threads
+            done
+        elif [ $cores -eq 2 ]; then
+            for threads in 2 4 8; do
+                run_program $mode $cores $threads
+            done
+        elif [ $cores -eq 4 ]; then
+            for threads in 8; do
+                run_program $mode $cores $threads
+            done
+        fi
+    done
 done
