@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  proyecto-hilos:
+    build: .
+    image: proyecto-hilos
+    mem_limit: 1g
+    memswap_limit: 1g
