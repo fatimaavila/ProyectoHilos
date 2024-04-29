@@ -1,7 +1,12 @@
-version: '3.8'
+version: '3.7'
 services:
   proyecto-hilos:
     build: .
     image: proyecto-hilos
-    mem_limit: 1g
-    memswap_limit: 1g
+    command: ["1", "2"]
+    environment:
+      CPU_LIMIT: ${CPU_LIMIT:-0.5}
+    deploy:
+      resources:
+        limits:
+          cpus: '${CPU_LIMIT}'

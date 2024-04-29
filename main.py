@@ -88,7 +88,9 @@ def run_files_parallel(input_dir, threads):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=int, help='Modo de ejecución (1 o 2)')
+    parser.add_argument('cores', type=int, help='Número de núcleos CPU a utilizar')
     parser.add_argument('threads', type=int, help='Número de hilos para usar')
+    
     args = parser.parse_args()
     if args.mode == 1:
         start_time = time.time()
