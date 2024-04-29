@@ -88,17 +88,19 @@ def run_files_parallel(input_dir, threads):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=int, help='Modo de ejecución (1 o 2)')
-    parser.add_argument('cores', type=int, help='Número de núcleos CPU a utilizar')
     parser.add_argument('threads', type=int, help='Número de hilos para usar')
-    
+    cpu_limit = os.getenv('CPU_LIMIT')
+
     args = parser.parse_args()
     if args.mode == 1:
+        print(f"Ejecutando en modo {args.mode} con {cpu_limit} núcleos y {args.threads} hilos")
         start_time = time.time()
         run_files_sequential(INPUT_DIR, args.threads)
         end_time = time.time()
         total_time = end_time - start_time
         print(f"Tiempo total de ejecución: {total_time:.2f} segundos")
     elif args.mode == 2:
+        print(f"Ejecutando en modo {args.mode} con {cpu_limit} núcleos y {args.threads} hilos")
         start_time = time.time()
         run_files_parallel(INPUT_DIR, args.threads)
         end_time = time.time()
