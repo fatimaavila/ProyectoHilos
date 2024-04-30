@@ -14,5 +14,9 @@ Con la capacidad de especificar el número de hilos a utilizar en el modo parale
 
 ``` docker run -m 1g --cpus 1 -e CPU_LIMIT=1 --rm --name proyecto-hilos proyecto-hilos 1 1 ```
 
+- cpus cambia el número de cores
+- El último parámetro cambia el número de hilos
+
+
 
 ### [Informe XLS con estadísticas 📊](https://docs.google.com/spreadsheets/d/1GAxQcifyXMgTyCkSgWlbltlQT4QfHTmAWHnQnPSuRvs/edit?usp=sharing)
